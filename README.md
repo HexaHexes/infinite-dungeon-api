@@ -29,9 +29,32 @@ each other:
 
 ## Using this library
 
-Modules in this suite consume it as a Maven dependency. The exact coordinates
-and repository setup are recorded in `docs/DEVELOPMENT_PLAN.md`; a pack that
-wants the full dungeon experience should install the core module alongside it.
+Modules in this suite consume it as a Maven dependency from the org's GitHub
+Packages registry:
+
+```groovy
+repositories {
+    maven {
+        url = uri('https://maven.pkg.github.com/HexaHexes/infinite-dungeon-api')
+        credentials {
+            username = System.getenv('GITHUB_ACTOR')
+            password = System.getenv('GITHUB_TOKEN') // read:packages
+        }
+    }
+}
+
+dependencies {
+    compileOnly 'org.bitwisemadness:infinite_dungeon_api:<version>'
+}
+```
+
+Reads on GitHub Packages always require authentication. In CI the token needs
+`packages: read`; the workflow token of one repository cannot read a package
+owned by another, so a read token is supplied as a secret. A pack that wants
+the full dungeon experience should install the core module alongside it.
+
+Publication happens when a GitHub release is published: the `Publish` workflow
+builds and uploads the artifact under the version in `gradle.properties`.
 
 ## Credits
 
