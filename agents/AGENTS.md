@@ -15,8 +15,8 @@ its own with no hard dependencies beyond Minecraft and NeoForge.
   party resolvers) registers from another module; absent providers fall back to
   documented defaults.
 
-**Test:** `./gradlew runGameTestServer` - `ApiSmokeGameTests` (1 test).
-`expectedTests = 1` in `build.gradle` must match the `@GameTest` count.
+**Test:** `./gradlew runGameTestServer` - `ApiSmokeGameTests` (2 tests).
+`expectedTests = 2` in `build.gradle` must match the `@GameTest` count.
 
 **Gotchas**
 - This library must never depend on another infinite-dungeon module. Dependencies

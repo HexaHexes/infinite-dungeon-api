@@ -3,6 +3,8 @@ package org.bitwisemadness.infinitedungeonapi;
 import com.mojang.logging.LogUtils;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.common.NeoForge;
+import org.bitwisemadness.infinitedungeonapi.profile.DimensionProfileReloadListener;
 import org.slf4j.Logger;
 
 /**
@@ -20,6 +22,9 @@ public final class InfiniteDungeonApi {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public InfiniteDungeonApi(IEventBus modBus) {
+        // Dimension profiles are datapack data owned by this library, so the
+        // reload listener registers here rather than in a consumer.
+        NeoForge.EVENT_BUS.addListener(DimensionProfileReloadListener::onAddReloadListeners);
         LOGGER.info("Infinite Dungeon API initialized");
     }
 }

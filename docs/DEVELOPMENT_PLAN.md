@@ -81,8 +81,10 @@ datapacks add more.
 - Precedence: config file values are global defaults; a profile overrides
   them; an absent profile field falls back to the default.
 - Reload: profiles are datapack data and reload with `/reload`.
-- Validation: unknown pool ids or entity references are skipped with a log
-  line, never a hard failure, so a profile can reference optional content.
+- Validation: references are checked for shape; a malformed one is dropped with
+  a log line, never a hard failure, so a profile can reference optional content.
+  Whether a well-formed pool id names a pool that actually exists is the
+  consumer's check, because only the core module owns the pool registry.
 - Requirement carried by every profile: world content must be seed-derived at
   chunk-generation time (the core plan's pregeneration rule). The API
   documents this requirement; it does not enforce it.
@@ -196,8 +198,8 @@ Shared by every module that reads `data/<ns>/infinite_dungeon/**`:
 
 ## 11. Delivery waves
 
-- Wave A1: scaffold (done) and the datapack loading utilities plus the
-  profile schema and registry.
+- Wave A1 (done): scaffold, the datapack loading utilities, and the profile
+  schema and registry.
 - Wave A2: ambient magicule service (providers and modifiers).
 - Wave A3: entity power stat service with the fallback metric.
 - Wave A4: lifecycle events.
@@ -211,7 +213,8 @@ checks before merge.
 
 JUnit (pure logic, no Minecraft runtime where possible):
 
-- profile JSON codec round-trip and precedence (default < profile);
+- profile resolution precedence (default < profile) and pool-reference
+  validation (shape only; the codec is game-facing);
 - `required_mod` filtering, missing-registry-entry tolerance, deterministic
   merge order across packs;
 - classification precedence with injectable predicates;
@@ -220,7 +223,7 @@ JUnit (pure logic, no Minecraft runtime where possible):
 
 GameTest (live server):
 
-- profile resolution for a registered dimension;
+- profile JSON codec round-trip and resolution for a registered dimension;
 - provider registration and query with a stub provider;
 - event firing on a simulated layer transition.
 
