@@ -150,7 +150,9 @@ Fired server-side by the core module and observed by integrations:
 | `SpawnGateDecisionEvent` | the safety module is about to block a natural spawn | diagnostics, pack overrides |
 
 Events are notifications unless documented cancellable; consumers must never
-rely on firing order between modules.
+rely on firing order between modules. `SpawnGateDecisionEvent` is the one
+documented exception: it is cancellable so a pack or integration can override
+the block, and cancelling it lets the spawn proceed.
 
 ## 8. Datapack loading utilities
 
@@ -202,7 +204,7 @@ Shared by every module that reads `data/<ns>/infinite_dungeon/**`:
   schema and registry.
 - Wave A2: ambient magicule service (providers and modifiers).
 - Wave A3: entity power stat service with the fallback metric.
-- Wave A4: lifecycle events.
+- Wave A4 (done): lifecycle events.
 - Wave A5: spawn classification and spawn-type helpers.
 - Wave A6: publishing workflow and consumer documentation.
 
@@ -225,7 +227,8 @@ GameTest (live server):
 
 - profile JSON codec round-trip and resolution for a registered dimension;
 - provider registration and query with a stub provider;
-- event firing on a simulated layer transition.
+- lifecycle events fire and carry their payload, including the cancellable
+  gate decision's veto.
 
 ## 13. Decision record
 
