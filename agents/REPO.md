@@ -48,6 +48,9 @@ its own with no hard dependencies beyond Minecraft and NeoForge.
 ## CI & release model - this repo
 
 - `ci.yml` runs the template's three checks (junit, gametest, version-bump).
-- This is the suite's published library: `publish.yml` builds and uploads the
-  artifact to the org's GitHub Packages registry when a GitHub release is
-  published, under the version in `gradle.properties`.
+- `release.yml` cuts the GitHub release for `v<mod_version>` on a push to `main`
+  (pre-releases only when the repo variable `ALPHA_RELEASES` is true) - until
+  now releases here were cut by hand.
+- This is the suite's published library: `publish.yml` uploads the artifact to
+  the org's GitHub Packages registry when that release is published, under the
+  version in `gradle.properties`.
