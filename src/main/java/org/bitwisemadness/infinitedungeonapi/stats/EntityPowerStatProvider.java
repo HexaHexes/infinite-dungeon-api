@@ -8,7 +8,7 @@ import net.minecraft.world.entity.LivingEntity;
  *
  * <p>Providers answer for a living entity, or return empty when they cannot
  * speak for that entity or stat. Implementations must be server-side, must not
- * block, and must be safe to call during ticking and spawn finalization.</p>
+ * block, and must be safe to call during ticking and spawn position checks.</p>
  */
 @FunctionalInterface
 public interface EntityPowerStatProvider {
