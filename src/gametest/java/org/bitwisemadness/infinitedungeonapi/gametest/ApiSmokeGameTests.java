@@ -8,6 +8,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
@@ -36,6 +37,7 @@ import org.bitwisemadness.infinitedungeonapi.profile.PortalReturnMode;
 import org.bitwisemadness.infinitedungeonapi.profile.ProfileAnnouncements;
 import org.bitwisemadness.infinitedungeonapi.profile.ProfilePools;
 import org.bitwisemadness.infinitedungeonapi.spawn.SpawnCategory;
+import org.bitwisemadness.infinitedungeonapi.stats.AttributeScaling;
 
 /**
  * Smoke test plus the profile codec's and lifecycle events' live-server proof.
@@ -156,6 +158,68 @@ public final class ApiSmokeGameTests {
                     "a listener's veto must survive the post");
         } finally {
             NeoForge.EVENT_BUS.unregister(listener);
+        }
+        helper.succeed();
+    }
+
+    /**
+     * The attribute scaling list (issue api#67): the curve rule against the
+     * jar-verified Tensura names, registration and enablement, the plan's
+     * magicule toggle semantics (off = scale as DIFFICULTY, never drop), and
+     * the no-Tensura enumeration being a no-op. Static state resets in
+     * finally - the batch shares the registry.
+     */
+    @GameTest(template = "empty")
+    public static void attribute_scaling_list_curves_and_toggle(GameTestHelper helper) {
+        try {
+            // The name rule, pinned against the pinned jar's ids:
+            // magicule-capacity attributes key M; the magic_* defense family
+            // and everything else keys D.
+            helper.assertTrue(AttributeScaling.curveFor("max_magicule")
+                            == AttributeScaling.Curve.MAGICULE,
+                    "max_magicule is magicule-specific");
+            helper.assertTrue(AttributeScaling.curveFor("magicule_regeneration_multiplier")
+                            == AttributeScaling.Curve.MAGICULE,
+                    "regeneration is magicule-specific");
+            helper.assertTrue(AttributeScaling.curveFor("max_aura")
+                            == AttributeScaling.Curve.DIFFICULTY,
+                    "aura keys difficulty");
+            helper.assertTrue(AttributeScaling.curveFor("magic_barrier")
+                            == AttributeScaling.Curve.DIFFICULTY,
+                    "the magic_* defense family is not magicule-specific");
+
+            ResourceLocation plain = ResourceLocation.parse("infinite_dungeon_api:smoke_plain");
+            ResourceLocation magicule = ResourceLocation.parse("infinite_dungeon_api:smoke_magicule");
+            AttributeScaling.register(plain, AttributeScaling.Curve.DIFFICULTY);
+            AttributeScaling.register(magicule, AttributeScaling.Curve.MAGICULE);
+            helper.assertTrue(AttributeScaling.entries().stream().anyMatch(
+                            row -> row.attribute().equals(plain)
+                                    && row.curve() == AttributeScaling.Curve.DIFFICULTY),
+                    "a registered row must appear with its curve");
+            helper.assertTrue(AttributeScaling.entries().stream().anyMatch(
+                            row -> row.attribute().equals(magicule)
+                                    && row.curve() == AttributeScaling.Curve.MAGICULE),
+                    "with the plan-default toggle on, M-keying stands");
+
+            AttributeScaling.setEnabled(magicule, false);
+            helper.assertTrue(AttributeScaling.entries().stream().noneMatch(
+                            row -> row.attribute().equals(magicule)),
+                    "a disabled row must leave the effective list");
+            AttributeScaling.setEnabled(magicule, true);
+
+            AttributeScaling.setMagiculeKeyedScaling(false);
+            helper.assertTrue(AttributeScaling.entries().stream().anyMatch(
+                            row -> row.attribute().equals(magicule)
+                                    && row.curve() == AttributeScaling.Curve.DIFFICULTY),
+                    "toggle off: still included, but scaling as DIFFICULTY");
+            AttributeScaling.setMagiculeKeyedScaling(true);
+
+            int before = AttributeScaling.entries().size();
+            AttributeScaling.registerTensuraAttributes();
+            helper.assertTrue(AttributeScaling.entries().size() == before,
+                    "without Tensura loaded the enumeration registers nothing and crashes nowhere");
+        } finally {
+            AttributeScaling.reset();
         }
         helper.succeed();
     }
