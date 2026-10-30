@@ -14,9 +14,13 @@ import net.minecraft.world.level.Level;
  * <ul>
  *   <li>Providers are asked in registration order; the first non-empty answer is
  *       the base value.</li>
- *   <li>Concentration modifiers (structure and portal elevation) then adjust the
- *       base: additive modifiers are summed first, multiplicative ones multiply
- *       afterwards, so stacking does not depend on registration order.</li>
+ *   <li>Concentration modifiers (structure and portal elevation - optionally
+ *       scoped to a {@link RadiusScope} so a source lifts only its
+ *       neighbourhood) then adjust the base: additive modifiers are summed
+ *       first, multiplicative ones multiply afterwards, so stacking does not
+ *       depend on registration order. {@link #query} filters by the queried
+ *       position, so every neighbourhood runs those same two phases over
+ *       whatever applies there.</li>
  *   <li>With no provider answer the result is {@link #COLD}, the documented cold
  *       value that makes every consumer a no-op.</li>
  * </ul>
@@ -42,7 +46,8 @@ public final class AmbientMagicule {
         PROVIDERS.remove(provider);
     }
 
-    /** Registers a concentration modifier such as a structure's elevation. */
+    /** Registers a concentration modifier such as a structure's elevation;
+     *  pass a {@link RadiusScope} factory variant to lift only an area. */
     public static void registerModifier(ConcentrationModifier modifier) {
         MODIFIERS.add(modifier);
     }
@@ -63,18 +68,32 @@ public final class AmbientMagicule {
         return OptionalDouble.empty();
     }
 
-    /** The final concentration at a position: provider answer plus modifiers. */
+    /** The final concentration at a position: provider answer plus the
+     *  modifiers whose scope contains the position. */
     public static double query(Level level, BlockPos pos) {
         OptionalDouble base = baseAt(level, pos);
-        return applyModifiers(base.isPresent() ? base.getAsDouble() : COLD, MODIFIERS);
+        double value = base.isPresent() ? base.getAsDouble() : COLD;
+        return applyModifiersAt(value, MODIFIERS, pos.getX(), pos.getY(), pos.getZ());
     }
 
     /**
      * The pure modifier phase, exposed for consumers that already hold a base
-     * value. Delegates to {@link ConcentrationModifier#applyAll}.
+     * value. Position-free: every modifier applies - callers holding
+     * coordinates should prefer {@link #applyModifiersAt} so scoped modifiers
+     * stay local. Delegates to {@link ConcentrationModifier#applyAll}.
      */
     public static double applyModifiers(double base, Collection<ConcentrationModifier> modifiers) {
         return ConcentrationModifier.applyAll(base, modifiers);
+    }
+
+    /**
+     * The pure position-aware modifier phase: only modifiers whose
+     * {@link RadiusScope} contains the position participate. Delegates to
+     * {@link ConcentrationModifier#applyAllAt}.
+     */
+    public static double applyModifiersAt(double base,
+            Collection<ConcentrationModifier> modifiers, int x, int y, int z) {
+        return ConcentrationModifier.applyAllAt(base, modifiers, x, y, z);
     }
 
     /** An unmodifiable view of the registered providers. */
