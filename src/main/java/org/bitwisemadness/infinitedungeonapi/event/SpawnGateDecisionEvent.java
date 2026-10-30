@@ -36,7 +36,7 @@ public final class SpawnGateDecisionEvent extends DungeonEvent implements ICance
                                   BlockPos position,
                                   double ambient,
                                   double required) {
-        super(dimension);
+        super(Objects.requireNonNull(dimension, "dimension"));
         this.mob = Objects.requireNonNull(mob, "mob");
         this.category = Objects.requireNonNull(category, "category");
         this.position = Objects.requireNonNull(position, "position").immutable();

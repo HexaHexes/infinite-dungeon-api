@@ -18,7 +18,7 @@ public final class BossSlainEvent extends DungeonEvent {
     private final LivingEntity boss;
 
     public BossSlainEvent(ResourceKey<Level> dimension, int layer, LivingEntity boss) {
-        super(dimension);
+        super(Objects.requireNonNull(dimension, "dimension"));
         if (layer < 0) {
             throw new IllegalArgumentException("layer must not be negative");
         }

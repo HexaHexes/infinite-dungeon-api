@@ -1,5 +1,6 @@
 package org.bitwisemadness.infinitedungeonapi.event;
 
+import java.util.Objects;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 
@@ -14,7 +15,7 @@ public final class LayerCompletedEvent extends DungeonEvent {
     private final int layer;
 
     public LayerCompletedEvent(ResourceKey<Level> dimension, int layer) {
-        super(dimension);
+        super(Objects.requireNonNull(dimension, "dimension"));
         if (layer < 0) {
             throw new IllegalArgumentException("layer must not be negative");
         }
