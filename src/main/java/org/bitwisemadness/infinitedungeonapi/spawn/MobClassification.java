@@ -26,9 +26,9 @@ public final class MobClassification {
                 entity instanceof NeutralMob,
                 entity instanceof Monster,
                 entity.getType().getCategory() == net.minecraft.world.entity.MobCategory.MONSTER);
-        return ClassificationRules.resolve(
-                id == null ? java.util.Optional.empty() : ClassificationOverrides.get(id.toString()),
-                facts);
+        // BuiltInRegistries.ENTITY_TYPE is a DefaultedRegistry: getKey() returns the
+        // registry's default key rather than null, so no null check is needed.
+        return ClassificationRules.resolve(ClassificationOverrides.get(id.toString()), facts);
     }
 
     /** Whether a spawn of this type is in scope for magicule gating. */

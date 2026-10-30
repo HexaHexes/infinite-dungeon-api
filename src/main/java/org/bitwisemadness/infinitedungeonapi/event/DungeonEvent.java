@@ -1,6 +1,5 @@
 package org.bitwisemadness.infinitedungeonapi.event;
 
-import java.util.Objects;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.neoforged.bus.api.Event;
@@ -19,8 +18,14 @@ public abstract class DungeonEvent extends Event {
 
     private final ResourceKey<Level> dimension;
 
+    /**
+     * @param dimension the dimension the event happened in; not validated here but
+     *     guaranteed non-null by every concrete subclass, each of which rejects a null
+     *     argument in its own {@code super(...)} call before any construction state
+     *     exists. Subclasses outside this package must do the same.
+     */
     protected DungeonEvent(ResourceKey<Level> dimension) {
-        this.dimension = Objects.requireNonNull(dimension, "dimension");
+        this.dimension = dimension;
     }
 
     /** The dimension the event happened in. */

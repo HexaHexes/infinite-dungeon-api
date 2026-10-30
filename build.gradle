@@ -187,6 +187,8 @@ tasks.matching { it.name == 'runGameTestServer' }.configureEach {
 spotbugs {
     ignoreFailures = true
     effort = com.github.spotbugs.snom.Effort.MAX
+    // Shared EI_EXPOSE_REP/EI_EXPOSE_REP2 exclusions; scope rule in the file.
+    excludeFilter = file('config/spotbugs-exclude.xml')
 }
 
 spotbugsTest {

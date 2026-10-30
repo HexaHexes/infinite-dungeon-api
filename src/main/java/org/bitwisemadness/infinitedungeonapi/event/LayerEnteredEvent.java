@@ -18,7 +18,7 @@ public final class LayerEnteredEvent extends DungeonEvent {
     private final int layer;
 
     public LayerEnteredEvent(ResourceKey<Level> dimension, UUID playerId, int layer) {
-        super(dimension);
+        super(Objects.requireNonNull(dimension, "dimension"));
         this.playerId = Objects.requireNonNull(playerId, "playerId");
         if (layer < 0) {
             throw new IllegalArgumentException("layer must not be negative");

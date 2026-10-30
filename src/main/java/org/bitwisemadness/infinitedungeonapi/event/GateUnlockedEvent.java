@@ -14,7 +14,7 @@ public final class GateUnlockedEvent extends DungeonEvent {
     private final String gateId;
 
     public GateUnlockedEvent(ResourceKey<Level> dimension, String gateId) {
-        super(dimension);
+        super(Objects.requireNonNull(dimension, "dimension"));
         String id = gateId == null ? "" : gateId.trim();
         if (id.isEmpty()) {
             throw new IllegalArgumentException("gateId is required");
