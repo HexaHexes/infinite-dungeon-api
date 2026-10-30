@@ -5,6 +5,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
 import org.bitwisemadness.infinitedungeonapi.profile.DimensionProfileReloadListener;
+import org.bitwisemadness.infinitedungeonapi.stats.AttributeScaling;
 import org.slf4j.Logger;
 
 /**
@@ -25,6 +26,10 @@ public final class InfiniteDungeonApi {
         // Dimension profiles are datapack data owned by this library, so the
         // reload listener registers here rather than in a consumer.
         NeoForge.EVENT_BUS.addListener(DimensionProfileReloadListener::onAddReloadListeners);
+        // The attribute scaling list enumerates Tensura's attributes on the
+        // first level load - the earliest point every mod is guaranteed
+        // constructed (issue api#67); registration is idempotent.
+        NeoForge.EVENT_BUS.addListener(AttributeScaling::onLevelLoad);
         LOGGER.info("Infinite Dungeon API initialized");
     }
 }
