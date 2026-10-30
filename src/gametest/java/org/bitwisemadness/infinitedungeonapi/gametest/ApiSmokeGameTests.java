@@ -10,9 +10,11 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.scores.PlayerTeam;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.gametest.GameTestHolder;
@@ -24,6 +26,7 @@ import org.bitwisemadness.infinitedungeonapi.event.GateUnlockedEvent;
 import org.bitwisemadness.infinitedungeonapi.event.LayerCompletedEvent;
 import org.bitwisemadness.infinitedungeonapi.event.LayerEnteredEvent;
 import org.bitwisemadness.infinitedungeonapi.event.SpawnGateDecisionEvent;
+import org.bitwisemadness.infinitedungeonapi.party.PartySizeResolver;
 import org.bitwisemadness.infinitedungeonapi.profile.CurveCoefficients;
 import org.bitwisemadness.infinitedungeonapi.profile.CurveOverrides;
 import org.bitwisemadness.infinitedungeonapi.profile.DimensionProfile;
@@ -221,6 +224,47 @@ public final class ApiSmokeGameTests {
         } finally {
             AttributeScaling.reset();
         }
+        helper.succeed();
+    }
+
+    /**
+     * The party resolver's presence semantics (plan section 8, issue api#65):
+     * nobody near = 1.0, an unteamed player is a solo party, players outside
+     * the radius never count, and offline (ghost) team names never count -
+     * every path here must read exactly 1.0; JUnit pins the greater-than-one
+     * arithmetic, and the mod tiers are compile-gated paths verified at
+     * wiring. Team state is world-persistent, so the team is looked up
+     * before creation (the harness world outlives runs).
+     */
+    @GameTest(template = "empty")
+    public static void party_size_resolver_reads_presence(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        BlockPos probe = helper.absolutePos(new BlockPos(0, 4, 0));
+        double radius = 8.0;
+        double perMember = 0.5;
+        helper.assertTrue(PartySizeResolver.multiplier(level, probe, radius, perMember) == 1.0,
+                "with nobody near the spawn the multiplier must be 1.0");
+
+        ServerPlayer near = helper.makeMockServerPlayerInLevel();
+        near.setPos(probe.getX() + 2.0, probe.getY(), probe.getZ());
+        helper.assertTrue(PartySizeResolver.multiplier(level, probe, radius, perMember) == 1.0,
+                "an unteamed player near the spawn is a solo party");
+
+        ServerPlayer beyond = helper.makeMockServerPlayerInLevel();
+        beyond.setPos(probe.getX() + 40.0, probe.getY(), probe.getZ());
+        helper.assertTrue(PartySizeResolver.multiplier(level, probe, radius, perMember) == 1.0,
+                "players outside the presence radius never count");
+
+        // A team carrying an offline (ghost) name: the online-only rule keeps
+        // the party solo - a ghost must never inflate a spawn.
+        PlayerTeam team = level.getScoreboard().getPlayerTeam("resolver_probe");
+        if (team == null) {
+            team = level.getScoreboard().addPlayerTeam("resolver_probe");
+        }
+        level.getScoreboard().addPlayerToTeam(near.getGameProfile().getName(), team);
+        level.getScoreboard().addPlayerToTeam("resolver_ghost_member", team);
+        helper.assertTrue(PartySizeResolver.multiplier(level, probe, radius, perMember) == 1.0,
+                "offline team members never count (online-only presence)");
         helper.succeed();
     }
 

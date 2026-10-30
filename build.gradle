@@ -96,9 +96,25 @@ tasks.withType(JavaCompile).configureEach {
 // run, so this configuration must stay wired in every derived repo.
 repositories {
     mavenCentral()
+    // Party-resolution tiers: compile-only references to the mods whose
+    // classes live behind ModList gates at runtime. Never packaged - the API
+    // ships without them and the tiers fall through.
+    maven {
+        name = 'CurseMaven'
+        url = uri('https://cursemaven.com')
+    }
+    // Open Parties and Claims ships on Modrinth; verified coordinate.
+    maven {
+        name = 'ModrinthMaven'
+        url = uri('https://api.modrinth.com/maven')
+    }
 }
 
 dependencies {
+    // Party tiers (issue api#65): compile-only, runtime-ModList-gated - the
+    // coordinates are the spike-verified pins (core #8; api#63).
+    compileOnly 'curse.maven:ftb-teams-neoforge-404468:8724782'
+    compileOnly 'maven.modrinth:open-parties-and-claims:neoforge-1.21.1-0.33.0'
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -148,7 +164,7 @@ publishing {
 // "All N required tests passed :)" when every required test succeeds. Keep
 // expectedTests in sync with the @GameTest methods in src/gametest.
 tasks.matching { it.name == 'runGameTestServer' }.configureEach {
-    def expectedTests = 4
+    def expectedTests = 5
     doLast {
         def log = file('run/logs/latest.log')
         if (!log.exists()) {
