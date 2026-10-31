@@ -171,6 +171,47 @@ public final class ApiSmokeGameTests {
     }
 
     /**
+     * The additive attribution payloads (api#53, ADR-0003): attributed
+     * construction carries the player id, the legacy constructors and a null
+     * attribution carry the documented unknown rather than throwing, and
+     * every variant survives the bus.
+     */
+    @GameTest(template = "empty")
+    public static void attribution_payloads_follow_adr_0003(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        ResourceKey<Level> dimension = level.dimension();
+        UUID killer = UUID.randomUUID();
+        Mob boss = EntityType.ZOMBIE.create(level);
+        helper.assertTrue(boss != null, "the boss must be creatable");
+
+        BossSlainEvent attributedKill = new BossSlainEvent(dimension, 3, boss, killer);
+        helper.assertTrue(attributedKill.killingPlayer().filter(killer::equals).isPresent(),
+            "an attributed kill must carry the killing player's id");
+        BossSlainEvent legacyKill = new BossSlainEvent(dimension, 3, boss);
+        helper.assertTrue(legacyKill.killingPlayer().isEmpty(),
+            "the legacy constructor must carry the documented unknown");
+        helper.assertTrue(new BossSlainEvent(dimension, 3, boss, null).killingPlayer().isEmpty(),
+            "a null attribution must read as unknown, not throw");
+        helper.assertTrue(attributedKill.layer() == 3 && attributedKill.boss() == boss,
+            "attribution must not disturb the existing payload");
+
+        LayerCompletedEvent attributedCompletion = new LayerCompletedEvent(dimension, 4, killer);
+        helper.assertTrue(attributedCompletion.completingPlayer().filter(killer::equals).isPresent(),
+            "an attributed completion must carry the completing player's id");
+        helper.assertTrue(attributedCompletion.layer() == 4,
+            "attribution must not disturb the layer payload, got " + attributedCompletion.layer());
+        helper.assertTrue(new LayerCompletedEvent(dimension, 4).completingPlayer().isEmpty(),
+            "the legacy constructor must carry the documented unknown");
+        helper.assertTrue(new LayerCompletedEvent(dimension, 4, null).completingPlayer().isEmpty(),
+            "a null attribution must read as unknown, not throw");
+
+        NeoForge.EVENT_BUS.post(attributedKill);
+        NeoForge.EVENT_BUS.post(legacyKill);
+        NeoForge.EVENT_BUS.post(attributedCompletion);
+        helper.succeed();
+    }
+
+    /**
      * The attribute scaling list (issue api#67): the curve rule against the
      * jar-verified Tensura names, registration and enablement, the plan's
      * magicule toggle semantics (off = scale as DIFFICULTY, never drop), and

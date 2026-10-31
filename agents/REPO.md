@@ -21,8 +21,8 @@ its own with no hard dependencies beyond Minecraft and NeoForge.
   party resolvers) registers from another module; absent providers fall back to
   documented defaults.
 
-**Test:** `./gradlew runGameTestServer` - `ApiSmokeGameTests` (8 tests).
-`expectedTests = 8` in `build.gradle` must match the `@GameTest` count.
+**Test:** `./gradlew runGameTestServer` - `ApiSmokeGameTests` (9 tests).
+`expectedTests = 9` in `build.gradle` must match the `@GameTest` count.
 
 **Remote:** `github.com/HexaHexes/infinite-dungeon-api` (public, default branch
 `main`).
