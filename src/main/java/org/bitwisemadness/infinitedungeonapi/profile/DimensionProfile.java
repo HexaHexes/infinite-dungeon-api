@@ -29,6 +29,8 @@ import org.bitwisemadness.infinitedungeonapi.data.ResourceRef;
  * @param announcements       the announcement text keys
  * @param spawnSafetyExempt   exemption from the overworld safety gates;
  *                            absent means the dungeon default of {@code true}
+ * @param bossRespawn         who gets a defeated boss's fight back (issue
+ *                            api#85); absent takes the consumer's default
  */
 public record DimensionProfile(String dimension,
                                Optional<Integer> layerLimit,
@@ -38,7 +40,8 @@ public record DimensionProfile(String dimension,
                                Optional<GuardianRules> guardian,
                                Optional<PortalPolicy> portal,
                                Optional<ProfileAnnouncements> announcements,
-                               Optional<Boolean> spawnSafetyExempt) {
+                               Optional<Boolean> spawnSafetyExempt,
+                               Optional<BossRespawnPolicy> bossRespawn) {
 
     public DimensionProfile {
         dimension = dimension == null ? "" : dimension.trim();
@@ -53,13 +56,15 @@ public record DimensionProfile(String dimension,
         portal = nonNull(portal);
         announcements = nonNull(announcements);
         spawnSafetyExempt = nonNull(spawnSafetyExempt);
+        bossRespawn = nonNull(bossRespawn);
     }
 
     /** A profile that only names its dimension; every rule falls to the default. */
     public static DimensionProfile forDimension(String dimension) {
         return new DimensionProfile(dimension,
                 Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
-                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
+                Optional.empty());
     }
 
     /** Whether the dimension id is a well-formed resource location. */
@@ -83,7 +88,7 @@ public record DimensionProfile(String dimension,
             return this;
         }
         return new DimensionProfile(dimension, layerLimit, floorsPerLayer, Optional.of(cleaned),
-                curves, guardian, portal, announcements, spawnSafetyExempt);
+                curves, guardian, portal, announcements, spawnSafetyExempt, bossRespawn);
     }
 
     /**
@@ -111,7 +116,8 @@ public record DimensionProfile(String dimension,
                 guardian.orElse(defaults.guardian()),
                 portal.orElse(defaults.portal()),
                 announcements.orElse(defaults.announcements()),
-                spawnSafetyExempt.orElse(defaults.spawnSafetyExempt()));
+                spawnSafetyExempt.orElse(defaults.spawnSafetyExempt()),
+                bossRespawn.orElse(defaults.bossRespawn()));
     }
 
     private static <T> Optional<T> nonNull(Optional<T> value) {

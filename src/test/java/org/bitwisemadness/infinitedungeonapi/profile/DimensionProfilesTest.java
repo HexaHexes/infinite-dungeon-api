@@ -23,7 +23,8 @@ class DimensionProfilesTest {
                 Optional.ofNullable(layerLimit),
                 Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
                 Optional.empty(), Optional.empty(),
-                Optional.ofNullable(exempt));
+                Optional.ofNullable(exempt),
+                Optional.empty());
     }
 
     @Test
@@ -80,7 +81,8 @@ class DimensionProfilesTest {
         DimensionProfile dirty = new DimensionProfile("infinite_dungeon:dungeon",
                 Optional.empty(), Optional.empty(),
                 Optional.of(new ProfilePools(Optional.of("BAD!"), Optional.empty(), Optional.empty())),
-                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
+                Optional.empty());
         DimensionProfiles.setDatapack(Map.of("infinite_dungeon:dungeon", dirty));
         assertTrue(DimensionProfiles.get("infinite_dungeon:dungeon").orElseThrow()
                 .malformedPoolIds().isEmpty());
