@@ -3,12 +3,14 @@ package org.bitwisemadness.infinitedungeonapi.gametest;
 import com.google.gson.JsonElement;
 import com.mojang.serialization.JsonOps;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
@@ -26,6 +28,9 @@ import org.bitwisemadness.infinitedungeonapi.event.GateUnlockedEvent;
 import org.bitwisemadness.infinitedungeonapi.event.LayerCompletedEvent;
 import org.bitwisemadness.infinitedungeonapi.event.LayerEnteredEvent;
 import org.bitwisemadness.infinitedungeonapi.event.SpawnGateDecisionEvent;
+import org.bitwisemadness.infinitedungeonapi.magicule.AmbientMagicule;
+import org.bitwisemadness.infinitedungeonapi.magicule.MagiculeProvider;
+import org.bitwisemadness.infinitedungeonapi.magicule.TensuraMagiculeBridge;
 import org.bitwisemadness.infinitedungeonapi.party.PartySizeResolver;
 import org.bitwisemadness.infinitedungeonapi.profile.CurveCoefficients;
 import org.bitwisemadness.infinitedungeonapi.profile.CurveOverrides;
@@ -265,6 +270,97 @@ public final class ApiSmokeGameTests {
         level.getScoreboard().addPlayerToTeam("resolver_ghost_member", team);
         helper.assertTrue(PartySizeResolver.multiplier(level, probe, radius, perMember) == 1.0,
                 "offline team members never count (online-only presence)");
+        helper.succeed();
+    }
+
+    /**
+     * The bridge's decline path (issue api#68): without Tensura the ModList
+     * gate closes before any foreign class loads, and the write declines -
+     * this harness carries neither Tensura nor manascore, so a write that
+     * touched them anyway would crash the run instead of returning false.
+     */
+    @GameTest(template = "empty")
+    public static void tensura_bridge_declines_without_the_mod(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        var chunk = level.getChunkAt(helper.absolutePos(BlockPos.ZERO));
+        helper.assertTrue(!TensuraMagiculeBridge.isUsable(),
+                "the harness has no Tensura - the gate must be closed");
+        helper.assertTrue(!TensuraMagiculeBridge.writeChunk(level, chunk),
+                "without Tensura the write must decline, not crash");
+        helper.succeed();
+    }
+
+    /**
+     * The defer mechanism (issue api#68, spike core#6's timing instruction):
+     * defer must QUEUE - a task enqueued from inside a tick, wherever the
+     * caller sits (worker thread, chunk-load event, nested load), runs at the
+     * next tick boundary and never inline at the call site. That deferral is
+     * what carries scheduleWrite past Tensura's storage initialization.
+     */
+    @GameTest(template = "empty")
+    public static void chunk_write_defers_to_the_next_tick(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        MinecraftServer server = level.getServer();
+        boolean[] ran = {false};
+        TensuraMagiculeBridge.defer(server, () -> ran[0] = true);
+        helper.assertTrue(!ran[0],
+                "defer must queue, never run inline - the deferral past Tensura's init");
+        helper.runAfterDelay(2, () -> {
+            helper.assertTrue(ran[0], "the deferred task must run by the next tick");
+            helper.succeed();
+        });
+    }
+
+    /**
+     * The write's sample position (issue api#68): M is read at the chunk
+     * centre's WORLD_SURFACE height - the same representative the
+     * dungeon-mouth elevation sources use (#218), where mobs actually spawn.
+     * Coordinate-encoding providers make the position observable: x*2^26+z
+     * pins the centre (exact in double for any world coordinate), then y pins
+     * the surface. The harness registers no other provider or modifier, so
+     * the sampled value is exactly what the test's provider answers.
+     */
+    @GameTest(template = "empty")
+    public static void magicule_at_samples_the_surface_centre(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        var chunk = level.getChunkAt(helper.absolutePos(BlockPos.ZERO));
+        int centerX = chunk.getPos().getMinBlockX() + 8;
+        int centerZ = chunk.getPos().getMinBlockZ() + 8;
+
+        MagiculeProvider coordinates = (lvl, pos) ->
+                OptionalDouble.of(pos.getX() * 67108864.0 + pos.getZ());
+        MagiculeProvider surface = (lvl, pos) -> OptionalDouble.of(pos.getY());
+        AmbientMagicule.registerProvider(coordinates);
+        AmbientMagicule.registerProvider(surface);
+        try {
+            double sampled = TensuraMagiculeBridge.magiculeAt(level, chunk);
+            double expectedXZ = centerX * 67108864.0 + centerZ;
+            // Double.compare, not == : the pin is EXACT (both sides are
+            // integer-valued doubles), which SpotBugs' floating-point-equality
+            // rule cannot tell apart from a rounding bug.
+            helper.assertTrue(Double.compare(sampled, expectedXZ) == 0,
+                    "the sample must sit at the chunk centre: got " + sampled
+                            + ", want " + expectedXZ);
+            // Providers answer in registration order - drop the coordinate
+            // one so the surface one answers. The y must be the RAW
+            // WORLD_SURFACE heightmap value - the surface BLOCK, the same
+            // representative #218's mouth sources use. Level.getHeight would
+            // read one ABOVE it: that +1 is vanilla's spawn-height convention,
+            // and the mismatch is exactly what this assertion caught when the
+            // test was first written against Level.getHeight while the bridge
+            // samples the heightmap the way #218 does. Block states pin the
+            // semantics independently of either API call.
+            AmbientMagicule.removeProvider(coordinates);
+            double sampledY = TensuraMagiculeBridge.magiculeAt(level, chunk);
+            BlockPos onSurface = new BlockPos(centerX, (int) sampledY, centerZ);
+            helper.assertTrue(!level.getBlockState(onSurface).isAir(),
+                    "the sample must sit at the surface block: got y " + sampledY);
+            helper.assertTrue(level.getBlockState(onSurface.above()).isAir(),
+                    "the block above the surface sample must be air: got y " + sampledY);
+        } finally {
+            AmbientMagicule.removeProvider(coordinates);
+            AmbientMagicule.removeProvider(surface);
+        }
         helper.succeed();
     }
 
