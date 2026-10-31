@@ -27,6 +27,7 @@ import org.bitwisemadness.infinitedungeonapi.event.FloorEnteredEvent;
 import org.bitwisemadness.infinitedungeonapi.event.GateUnlockedEvent;
 import org.bitwisemadness.infinitedungeonapi.event.LayerCompletedEvent;
 import org.bitwisemadness.infinitedungeonapi.event.LayerEnteredEvent;
+import org.bitwisemadness.infinitedungeonapi.event.MinibossSlainEvent;
 import org.bitwisemadness.infinitedungeonapi.event.SpawnGateDecisionEvent;
 import org.bitwisemadness.infinitedungeonapi.magicule.AmbientMagicule;
 import org.bitwisemadness.infinitedungeonapi.magicule.MagiculeProvider;
@@ -208,6 +209,50 @@ public final class ApiSmokeGameTests {
         NeoForge.EVENT_BUS.post(attributedKill);
         NeoForge.EVENT_BUS.post(legacyKill);
         NeoForge.EVENT_BUS.post(attributedCompletion);
+        helper.succeed();
+    }
+
+    /**
+     * The floor-miniboss event (api#83): exact layer and floor from the core's
+     * tag, the boss valid at fire, ADR-0003 attribution from birth, and the
+     * constructor's payload validation.
+     */
+    @GameTest(template = "empty")
+    public static void miniboss_slain_carries_tag_and_attribution(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        ResourceKey<Level> dimension = level.dimension();
+        UUID killer = UUID.randomUUID();
+        Mob boss = EntityType.ZOMBIE.create(level);
+        helper.assertTrue(boss != null, "the miniboss must be creatable");
+
+        MinibossSlainEvent attributed = new MinibossSlainEvent(dimension, 5, 12, boss, killer);
+        helper.assertTrue(attributed.layer() == 5 && attributed.floor() == 12,
+            "the event must carry the tagged layer and floor, got " + attributed.layer() + "/" + attributed.floor());
+        helper.assertTrue(attributed.boss() == boss, "the event must carry the boss");
+        helper.assertTrue(attributed.killingPlayer().filter(killer::equals).isPresent(),
+            "an attributed miniboss kill must carry the killing player's id");
+        helper.assertTrue(attributed.dimension().equals(dimension),
+            "the event must carry its dimension like every DungeonEvent");
+
+        helper.assertTrue(new MinibossSlainEvent(dimension, 0, 0, boss, null).killingPlayer().isEmpty(),
+            "a null attribution must read as unknown, not throw");
+
+        boolean rejectedNegativeLayer = false;
+        try {
+            new MinibossSlainEvent(dimension, -1, 0, boss, null);
+        } catch (IllegalArgumentException expected) {
+            rejectedNegativeLayer = true;
+        }
+        helper.assertTrue(rejectedNegativeLayer, "a negative layer must be rejected");
+        boolean rejectedNegativeFloor = false;
+        try {
+            new MinibossSlainEvent(dimension, 0, -1, boss, null);
+        } catch (IllegalArgumentException expected) {
+            rejectedNegativeFloor = true;
+        }
+        helper.assertTrue(rejectedNegativeFloor, "a negative floor must be rejected");
+
+        NeoForge.EVENT_BUS.post(attributed);
         helper.succeed();
     }
 
