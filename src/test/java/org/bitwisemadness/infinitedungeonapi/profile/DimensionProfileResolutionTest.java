@@ -28,7 +28,8 @@ class DimensionProfileResolutionTest {
                 new GuardianRules(300, 10.0),
                 PortalPolicy.defaults(),
                 new ProfileAnnouncements("dungeon.entry", "dungeon.layer"),
-                true);
+                true,
+                BossRespawnPolicy.defaults());
     }
 
     @Test
@@ -42,6 +43,8 @@ class DimensionProfileResolutionTest {
         assertEquals(new ProfileAnnouncements("dungeon.entry", "dungeon.layer"), resolved.announcements());
         assertTrue(resolved.spawnSafetyExempt());
         assertEquals(Optional.of("core:default_fodder"), resolved.pools().fodder());
+        assertEquals(BossRespawnPolicy.defaults(), resolved.bossRespawn(),
+                "an absent respawn policy falls to the default");
     }
 
     @Test
@@ -54,7 +57,8 @@ class DimensionProfileResolutionTest {
                 Optional.of(new GuardianRules(60, 25.0)),
                 Optional.of(new PortalPolicy(PortalReturnMode.WORLD_SPAWN, false, false)),
                 Optional.of(new ProfileAnnouncements("custom.entry", "custom.layer")),
-                Optional.of(false));
+                Optional.of(false),
+                Optional.of(new BossRespawnPolicy(BossRespawnMode.TIMER, 500)));
         DimensionProfileSettings resolved = profile.resolve(defaults());
         assertEquals(Optional.of(20), resolved.layerLimit());
         assertEquals(new FloorsPerLayer(3, 4), resolved.floorsPerLayer());
@@ -64,6 +68,10 @@ class DimensionProfileResolutionTest {
         assertFalse(resolved.portal().reformMissingPortal());
         assertEquals(new ProfileAnnouncements("custom.entry", "custom.layer"), resolved.announcements());
         assertFalse(resolved.spawnSafetyExempt());
+        assertEquals(BossRespawnMode.TIMER, resolved.bossRespawn().mode(),
+                "the declared respawn mode must win over the default");
+        assertEquals(500, resolved.bossRespawn().respawnTicks(),
+                "the declared respawn delay must win over the default");
     }
 
     @Test
@@ -75,7 +83,8 @@ class DimensionProfileResolutionTest {
                         Optional.of(new CurveCoefficients(1.0, 2.0, 3.0)),
                         Optional.empty(),
                         Optional.empty())),
-                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
+                Optional.empty());
         DimensionProfileSettings resolved = profile.resolve(defaults());
         assertEquals(Optional.of("pack:fodder"), resolved.pools().fodder());
         assertEquals(Optional.of("core:default_boss"), resolved.pools().boss());

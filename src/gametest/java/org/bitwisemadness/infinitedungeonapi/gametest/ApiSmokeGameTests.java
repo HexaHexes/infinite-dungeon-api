@@ -33,6 +33,8 @@ import org.bitwisemadness.infinitedungeonapi.magicule.AmbientMagicule;
 import org.bitwisemadness.infinitedungeonapi.magicule.MagiculeProvider;
 import org.bitwisemadness.infinitedungeonapi.magicule.TensuraMagiculeBridge;
 import org.bitwisemadness.infinitedungeonapi.party.PartySizeResolver;
+import org.bitwisemadness.infinitedungeonapi.profile.BossRespawnMode;
+import org.bitwisemadness.infinitedungeonapi.profile.BossRespawnPolicy;
 import org.bitwisemadness.infinitedungeonapi.profile.CurveCoefficients;
 import org.bitwisemadness.infinitedungeonapi.profile.CurveOverrides;
 import org.bitwisemadness.infinitedungeonapi.profile.DimensionProfile;
@@ -92,7 +94,8 @@ public final class ApiSmokeGameTests {
                 Optional.of(new GuardianRules(120, 15.0)),
                 Optional.of(new PortalPolicy(PortalReturnMode.WORLD_SPAWN, false, true)),
                 Optional.of(new ProfileAnnouncements("dungeon.entry", "dungeon.layer")),
-                Optional.of(false));
+                Optional.of(false),
+                Optional.of(new BossRespawnPolicy(BossRespawnMode.TIMER, 4000)));
 
         JsonElement json = DimensionProfileCodecs.PROFILE.codec()
                 .encodeStart(JsonOps.INSTANCE, profile).getOrThrow();
@@ -108,7 +111,8 @@ public final class ApiSmokeGameTests {
                 new GuardianRules(300, 10.0),
                 PortalPolicy.defaults(),
                 ProfileAnnouncements.empty(),
-                true);
+                true,
+                BossRespawnPolicy.defaults());
         DimensionProfileSettings resolved = profile.resolve(defaults);
         helper.assertTrue(Optional.of(9).equals(resolved.layerLimit()),
                 "the declared layer limit must win over the default");
@@ -116,6 +120,9 @@ public final class ApiSmokeGameTests {
                 "the declared exemption flag must win over the default");
         helper.assertTrue(resolved.curves().magicule().isEmpty(),
                 "an undeclared curve stays absent when the default is empty");
+        helper.assertTrue(BossRespawnMode.TIMER.equals(resolved.bossRespawn().mode())
+                        && resolved.bossRespawn().respawnTicks() == 4000,
+                "the declared respawn policy must survive resolution and win: " + resolved.bossRespawn());
 
         DimensionProfiles.register(profile);
         try {

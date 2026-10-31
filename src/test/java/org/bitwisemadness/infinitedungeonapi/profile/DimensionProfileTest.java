@@ -28,9 +28,10 @@ class DimensionProfileTest {
     @Test
     void absentOptionalsAreTolerated() {
         DimensionProfile profile = new DimensionProfile("infinite_dungeon:dungeon",
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null);
         assertTrue(profile.layerLimit().isEmpty());
         assertTrue(profile.spawnSafetyExempt().isEmpty());
+        assertTrue(profile.bossRespawn().isEmpty());
         assertTrue(profile.malformedPoolIds().isEmpty());
     }
 
@@ -45,7 +46,8 @@ class DimensionProfileTest {
         DimensionProfile profile = new DimensionProfile("infinite_dungeon:dungeon",
                 Optional.empty(), Optional.empty(),
                 Optional.of(new ProfilePools(Optional.of("core:fodder"), Optional.of("BAD!"), Optional.empty())),
-                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
+                Optional.empty());
         assertEquals(List.of("BAD!"), profile.malformedPoolIds());
         assertTrue(profile.sanitised().malformedPoolIds().isEmpty());
         assertEquals(Optional.of("core:fodder"), profile.sanitised().pools().orElseThrow().fodder());

@@ -22,6 +22,8 @@ import java.util.Optional;
  * @param announcements       the announcement text keys
  * @param spawnSafetyExempt   whether the dimension is exempt from the overworld
  *                            safety gates
+ * @param bossRespawn         who gets a defeated boss's fight back (issue
+ *                            api#85); always resolved, never null
  */
 public record DimensionProfileSettings(Optional<Integer> layerLimit,
                                        FloorsPerLayer floorsPerLayer,
@@ -30,7 +32,8 @@ public record DimensionProfileSettings(Optional<Integer> layerLimit,
                                        GuardianRules guardian,
                                        PortalPolicy portal,
                                        ProfileAnnouncements announcements,
-                                       boolean spawnSafetyExempt) {
+                                       boolean spawnSafetyExempt,
+                                       BossRespawnPolicy bossRespawn) {
 
     public DimensionProfileSettings {
         layerLimit = layerLimit == null ? Optional.empty() : layerLimit;
@@ -40,5 +43,6 @@ public record DimensionProfileSettings(Optional<Integer> layerLimit,
         Objects.requireNonNull(guardian, "guardian");
         Objects.requireNonNull(portal, "portal");
         Objects.requireNonNull(announcements, "announcements");
+        Objects.requireNonNull(bossRespawn, "bossRespawn");
     }
 }

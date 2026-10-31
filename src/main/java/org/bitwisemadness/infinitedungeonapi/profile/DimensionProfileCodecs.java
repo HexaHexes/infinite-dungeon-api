@@ -64,6 +64,18 @@ public final class DimensionProfileCodecs {
                     .forGetter(PortalPolicy::reformMissingPortal)
     ).apply(instance, PortalPolicy::new));
 
+    /** {@code per_player}, {@code once} or {@code timer}. */
+    public static final Codec<BossRespawnMode> RESPAWN_MODE =
+            Codec.STRING.xmap(BossRespawnMode::parse, BossRespawnMode::serializedName);
+
+    /** The {@code { mode, respawnTicks }} respawn policy (issue api#85). */
+    public static final Codec<BossRespawnPolicy> BOSS_RESPAWN = RecordCodecBuilder.create(instance -> instance.group(
+            RESPAWN_MODE.optionalFieldOf("mode", BossRespawnMode.PER_PLAYER)
+                    .forGetter(BossRespawnPolicy::mode),
+            Codec.LONG.optionalFieldOf("respawnTicks", BossRespawnPolicy.DEFAULT_RESPAWN_TICKS)
+                    .forGetter(BossRespawnPolicy::respawnTicks)
+    ).apply(instance, BossRespawnPolicy::new));
+
     /** The {@code { entry, layer }} announcement keys. */
     public static final Codec<ProfileAnnouncements> ANNOUNCEMENTS = RecordCodecBuilder.create(instance -> instance.group(
             Codec.STRING.optionalFieldOf("entry", "").forGetter(ProfileAnnouncements::entry),
@@ -80,6 +92,7 @@ public final class DimensionProfileCodecs {
             GUARDIAN.optionalFieldOf("guardian").forGetter(DimensionProfile::guardian),
             PORTAL.optionalFieldOf("portal").forGetter(DimensionProfile::portal),
             ANNOUNCEMENTS.optionalFieldOf("announcements").forGetter(DimensionProfile::announcements),
-            Codec.BOOL.optionalFieldOf("spawnSafetyExempt").forGetter(DimensionProfile::spawnSafetyExempt)
+            Codec.BOOL.optionalFieldOf("spawnSafetyExempt").forGetter(DimensionProfile::spawnSafetyExempt),
+            BOSS_RESPAWN.optionalFieldOf("bossRespawn").forGetter(DimensionProfile::bossRespawn)
     ).apply(instance, DimensionProfile::new));
 }
