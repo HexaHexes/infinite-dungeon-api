@@ -47,6 +47,7 @@ import org.bitwisemadness.infinitedungeonapi.profile.ProfileAnnouncements;
 import org.bitwisemadness.infinitedungeonapi.profile.ProfilePools;
 import org.bitwisemadness.infinitedungeonapi.spawn.SpawnCategory;
 import org.bitwisemadness.infinitedungeonapi.stats.AttributeScaling;
+import org.bitwisemadness.infinitedungeonapi.util.Determinism;
 
 /**
  * Smoke test plus the profile codec's and lifecycle events' live-server proof.
@@ -494,5 +495,46 @@ public final class ApiSmokeGameTests {
             // Stand in for a pack override: veto the block.
             event.setCanceled(true);
         }
+    }
+
+    /**
+     * The deterministic stream contract (issue api#84): identical inputs draw
+     * identical values, decision names are independent, and a later decision
+     * cannot shift an earlier one's roll. Lives here rather than in JUnit for
+     * the same reason as the codec round-trip: Minecraft's RandomSource stays
+     * off the unit-test classpath, so only a live server can execute the
+     * chain (the JUnit side pins the name validation, which needs no MC).
+     */
+    @GameTest(template = "empty")
+    public static void determinism_streams_are_stable_and_independent(GameTestHelper helper) {
+        long seed = 1234L;
+        int x = 600;
+        int y = -64;
+        int z = 900;
+
+        long first = Determinism.nextLong("infinite_dungeon:probe", seed, x, y, z);
+        long repeat = Determinism.nextLong("infinite_dungeon:probe", seed, x, y, z);
+        helper.assertTrue(first == repeat,
+                "the same (decision, seed, position) must draw the same value: "
+                        + first + " vs " + repeat);
+
+        helper.assertTrue(Determinism.nextLong("infinite_dungeon:left", seed, x, y, z)
+                        != Determinism.nextLong("infinite_dungeon:right", seed, x, y, z),
+                "two decision names at one position must draw independent values");
+
+        helper.assertTrue(Determinism.nextLong("infinite_dungeon:probe", seed, x, y, z)
+                        != Determinism.nextLong("infinite_dungeon:probe", seed + 1, x, y, z),
+                "the world seed must change a decision's value");
+        helper.assertTrue(Determinism.nextLong("infinite_dungeon:probe", seed, x, y, z)
+                        != Determinism.nextLong("infinite_dungeon:probe", seed, x, y + 1, z),
+                "the position must change a decision's value");
+
+        long before = Determinism.nextLong("infinite_dungeon:earlier", seed, x, y, z);
+        Determinism.nextLong("infinite_dungeon:later", seed, x, y, z);
+        long after = Determinism.nextLong("infinite_dungeon:earlier", seed, x, y, z);
+        helper.assertTrue(before == after,
+                "a new decision's stream must not shift an existing one: "
+                        + before + " vs " + after);
+        helper.succeed();
     }
 }
