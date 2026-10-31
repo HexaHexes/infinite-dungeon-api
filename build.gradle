@@ -115,9 +115,41 @@ dependencies {
     // coordinates are the spike-verified pins (core #8; api#63).
     compileOnly 'curse.maven:ftb-teams-neoforge-404468:8724782'
     compileOnly 'maven.modrinth:open-parties-and-claims:neoforge-1.21.1-0.33.0'
+    // Chunk magicule bridge (issue api#68): the design-pinned coordinate from
+    // spike core#6, byte-checked against the jar (TensuraStorages.getChunkFrom
+    // is the only path LevelChunk storage needs). ManasCore rides alongside
+    // because javac cannot complete ChunkStorage without its superclass
+    // (manascore's Storage) on the classpath - and ManasCore publishes
+    // JAR-IN-JAR: every module, Storage included, sits under META-INF/jars/
+    // where no flat classpath can see it. The curse coordinate is the
+    // neoforge 4.0.0.2 file (sha-verified against Modrinth's listing; its
+    // nested jars say neoforge), and the zipTree below opens the container
+    // for the compiler only. Runtime needs none of this: NeoForge loads the
+    // nested jars from the mod file itself. No code here ever names a
+    // manascore type - both lines exist purely to satisfy javac's hierarchy
+    // completion, behind the same ModList gate as everything else.
+    compileOnly 'curse.maven:tensura-reincarnated-643695:8793360'
+    compileOnly 'curse.maven:manascore-619025:8022425'
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+// The compiler's view into ManasCore's jar-in-jar container (see the comment
+// on the coordinate above): resolve the pinned neoforge container, extract its
+// nested module jars, and hand them to javac as files. Lazy - the closure runs
+// when the file collection is resolved (task execution), never at script
+// evaluation. compileOnly, so nothing here is packaged or published.
+configurations {
+    manascoreContainer
+}
+dependencies {
+    manascoreContainer 'curse.maven:manascore-619025:8022425'
+    compileOnly files({
+        configurations.manascoreContainer.resolve().collectMany { outer ->
+            zipTree(outer).matching { include 'META-INF/jars/*.jar' }.files
+        }
+    })
 }
 
 test {
@@ -164,7 +196,7 @@ publishing {
 // "All N required tests passed :)" when every required test succeeds. Keep
 // expectedTests in sync with the @GameTest methods in src/gametest.
 tasks.matching { it.name == 'runGameTestServer' }.configureEach {
-    def expectedTests = 5
+    def expectedTests = 8
     doLast {
         def log = file('run/logs/latest.log')
         if (!log.exists()) {

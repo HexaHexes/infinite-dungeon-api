@@ -25,7 +25,12 @@ each other:
 |---|---|---|
 | Required | Minecraft | - |
 | Required | NeoForge | - |
-| Optional | none | Every provider is optional |
+| Optional | Open Parties and Claims | Party tier in the party resolver (api#65) |
+| Optional | FTB Teams | Party tier in the party resolver (api#65) |
+| Optional | Tensura: Reincarnated | Chunk magicule bridge (api#68) |
+
+Every integration above is compile-only dev wiring behind a ModList gate:
+this library ships and runs without any of them.
 
 ## Using this library
 
