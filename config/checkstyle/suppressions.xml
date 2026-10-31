@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suppressions PUBLIC "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN" "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+<!-- Grandfathered findings from the Checkstyle pull: burn-down only, never new code. -->
+<suppressions>
+    <suppress checks="RegexpMultiline" files="ApiSmokeGameTests.java" lines="344"/>
+    <suppress checks="RegexpMultiline" files="ConcentrationModifierTest.java" lines="98"/>
+</suppressions>
