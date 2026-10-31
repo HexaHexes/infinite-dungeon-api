@@ -405,6 +405,15 @@ public final class ApiSmokeGameTests {
      * pins the centre (exact in double for any world coordinate), then y pins
      * the surface. The harness registers no other provider or modifier, so
      * the sampled value is exactly what the test's provider answers.
+     *
+     * <p>The y assertion pins the <b>raw</b> {@code WORLD_SURFACE} heightmap
+     * value - the surface block, the same representative #218's mouth sources
+     * use - rather than {@code Level.getHeight}, which reports one block
+     * ABOVE it (vanilla's spawn-height convention). This test was first
+     * written against {@code Level.getHeight} while the bridge samples the
+     * heightmap the way #218 does, and that mismatch is exactly what the
+     * block-state assertions caught. They pin the semantics independently of
+     * either API call.</p>
      */
     @GameTest(template = "empty")
     public static void magicule_at_samples_the_surface_centre(GameTestHelper helper) {
@@ -427,15 +436,9 @@ public final class ApiSmokeGameTests {
             helper.assertTrue(Double.compare(sampled, expectedXZ) == 0,
                     "the sample must sit at the chunk centre: got " + sampled
                             + ", want " + expectedXZ);
-            // Providers answer in registration order - drop the coordinate
-            // one so the surface one answers. The y must be the RAW
-            // WORLD_SURFACE heightmap value - the surface BLOCK, the same
-            // representative #218's mouth sources use. Level.getHeight would
-            // read one ABOVE it: that +1 is vanilla's spawn-height convention,
-            // and the mismatch is exactly what this assertion caught when the
-            // test was first written against Level.getHeight while the bridge
-            // samples the heightmap the way #218 does. Block states pin the
-            // semantics independently of either API call.
+            // Providers answer in registration order: drop coordinates so
+            // surface answers. y must be the RAW WORLD_SURFACE value - NOT
+            // Level.getHeight, which reads one above (see the javadoc).
             AmbientMagicule.removeProvider(coordinates);
             double sampledY = TensuraMagiculeBridge.magiculeAt(level, chunk);
             BlockPos onSurface = new BlockPos(centerX, (int) sampledY, centerZ);
