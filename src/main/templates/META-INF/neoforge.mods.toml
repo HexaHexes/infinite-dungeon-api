@@ -33,6 +33,30 @@ versionRange = "${minecraft_version_range}"
 ordering = "NONE"
 side = "BOTH"
 
+# Optional integrations. Each is gated behind ModList.isLoaded in the
+# consumer, so absence no-ops. Floors copied from quick-loot, the reference
+# integrations for the same mods.
+[[dependencies.${mod_id}]]
+modId = "ftbteams"
+type = "optional"
+versionRange = "[2101.1,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "openpartiesandclaims"
+type = "optional"
+versionRange = "[0.30,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "tensura"
+type = "optional"
+versionRange = "[2.0,)"
+ordering = "AFTER"
+side = "BOTH"
+
 # Add your mod's dependencies below. Use type = "optional" for anything the mod
 # works without, and gate the code that touches it (mixins, registrations) so it
 # no-ops when the dependency is absent.
