@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
+import org.bitwisemadness.infinitedungeonapi.dialogue.DialogueReloadListener;
 import org.bitwisemadness.infinitedungeonapi.profile.DimensionProfileReloadListener;
 import org.bitwisemadness.infinitedungeonapi.stats.AttributeScaling;
 import org.slf4j.Logger;
@@ -13,8 +14,9 @@ import org.slf4j.Logger;
  *
  * <p>This library holds the abstractions and service registries every
  * infinite-dungeon module shares: dimension profiles, the ambient magicule
- * service, entity power stat providers, and lifecycle events. It ships no
- * gameplay of its own, so it is safe to install alone.</p>
+ * service, entity power stat providers, dialogue sessions and content, and
+ * lifecycle events. It ships no gameplay of its own, so it is safe to
+ * install alone.</p>
  */
 @Mod(InfiniteDungeonApi.MOD_ID)
 public final class InfiniteDungeonApi {
@@ -26,6 +28,9 @@ public final class InfiniteDungeonApi {
         // Dimension profiles are datapack data owned by this library, so the
         // reload listener registers here rather than in a consumer.
         NeoForge.EVENT_BUS.addListener(DimensionProfileReloadListener::onAddReloadListeners);
+        // Dialogue content is datapack data owned by this library for the
+        // same reason.
+        NeoForge.EVENT_BUS.addListener(DialogueReloadListener::onAddReloadListeners);
         // The attribute scaling list enumerates Tensura's attributes on the
         // first level load - the earliest point every mod is guaranteed
         // constructed (issue api#67); registration is idempotent.
