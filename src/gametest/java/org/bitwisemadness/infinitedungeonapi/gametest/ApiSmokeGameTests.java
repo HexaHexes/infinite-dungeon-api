@@ -23,6 +23,7 @@ import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.bitwisemadness.infinitedungeonapi.InfiniteDungeonApi;
 import org.bitwisemadness.infinitedungeonapi.event.BossSlainEvent;
+import org.bitwisemadness.infinitedungeonapi.event.DungeonResetEvent;
 import org.bitwisemadness.infinitedungeonapi.event.FloorEnteredEvent;
 import org.bitwisemadness.infinitedungeonapi.event.GateUnlockedEvent;
 import org.bitwisemadness.infinitedungeonapi.event.LayerCompletedEvent;
@@ -177,6 +178,29 @@ public final class ApiSmokeGameTests {
             NeoForge.EVENT_BUS.unregister(listener);
         }
         helper.succeed();
+    }
+
+    /**
+     * The reset lifecycle event (issue api#94): a timed loot or mob reset
+     * fires on the bus carrying its kind and layer scope, with no player
+     * attribution - a timer reset is not player-driven.
+     */
+    @GameTest(template = "empty")
+    public static void reset_event_carries_kind_and_layer(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        ResourceKey<Level> dimension = level.dimension();
+
+        ObservingListener listener = new ObservingListener();
+        NeoForge.EVENT_BUS.register(listener);
+        try {
+            NeoForge.EVENT_BUS.post(new DungeonResetEvent(dimension, DungeonResetEvent.Kind.LOOT, 4));
+            helper.assertTrue(listener.resetKind == DungeonResetEvent.Kind.LOOT,
+                    "the reset must carry its kind");
+            helper.assertTrue(listener.resetLayer == 4, "the reset must carry its layer");
+            helper.succeed();
+        } finally {
+            NeoForge.EVENT_BUS.unregister(listener);
+        }
     }
 
     /**
@@ -470,6 +494,8 @@ public final class ApiSmokeGameTests {
         private volatile boolean bossSlain;
         private volatile String gateId;
         private volatile boolean decisionSeen;
+        private volatile DungeonResetEvent.Kind resetKind;
+        private volatile int resetLayer = -1;
 
         @SubscribeEvent
         public void onLayerEntered(LayerEnteredEvent event) {
@@ -501,6 +527,12 @@ public final class ApiSmokeGameTests {
             decisionSeen = true;
             // Stand in for a pack override: veto the block.
             event.setCanceled(true);
+        }
+
+        @SubscribeEvent
+        public void onReset(DungeonResetEvent event) {
+            resetKind = event.kind();
+            resetLayer = event.layer();
         }
     }
 
