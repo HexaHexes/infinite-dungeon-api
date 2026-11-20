@@ -16,12 +16,18 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.scores.PlayerTeam;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.bitwisemadness.infinitedungeonapi.InfiniteDungeonApi;
+import org.bitwisemadness.infinitedungeonapi.entrance.EntranceContext;
+import org.bitwisemadness.infinitedungeonapi.entrance.EntranceDecision;
+import org.bitwisemadness.infinitedungeonapi.entrance.EntranceGenerationPolicy;
+import org.bitwisemadness.infinitedungeonapi.entrance.EntranceLocations;
+import org.bitwisemadness.infinitedungeonapi.entrance.EntranceSite;
 import org.bitwisemadness.infinitedungeonapi.event.BossSlainEvent;
 import org.bitwisemadness.infinitedungeonapi.event.DungeonResetEvent;
 import org.bitwisemadness.infinitedungeonapi.event.FloorEnteredEvent;
@@ -574,6 +580,54 @@ public final class ApiSmokeGameTests {
         helper.assertTrue(before == after,
                 "a new decision's stream must not shift an existing one: "
                         + before + " vs " + after);
+        helper.succeed();
+    }
+
+    /** The entrance policy generates only in suitable contexts (api#58). */
+    @GameTest(template = "empty")
+    public static void entrance_policy_generates_only_in_suitable_places(GameTestHelper helper) {
+        try {
+            ServerLevel level = helper.getLevel();
+            BlockPos site = helper.absolutePos(new BlockPos(0, 5, 0));
+            for (int dx = -3; dx <= 3; dx++) {
+                for (int dz = -3; dz <= 3; dz++) {
+                    level.setBlock(site.offset(dx, -1, dz), Blocks.STONE.defaultBlockState(), 3);
+                }
+            }
+            for (int dx = -3; dx <= 3; dx++) {
+                for (int dy = 0; dy < 8; dy++) {
+                    for (int dz = -3; dz <= 3; dz++) {
+                        level.setBlock(site.offset(dx, dy, dz), Blocks.AIR.defaultBlockState(), 3);
+                    }
+                }
+            }
+            ResourceLocation structure = ResourceLocation.withDefaultNamespace("tower_entrance");
+            EntranceLocations.register("tower", context -> Optional.of(new EntranceSite(site, structure)));
+            EntranceGenerationPolicy policy = new EntranceGenerationPolicy(7, 8, 7, Blocks.STONE_BRICKS);
+            EntranceDecision decision = policy.decide(
+                    new EntranceContext(level, level.getRandom(), "tower", false));
+            helper.assertTrue(decision.outcome() == EntranceDecision.Outcome.GENERATE
+                            && site.equals(decision.site().position()),
+                    "a clear, solid site must generate: " + decision.outcome());
+            level.setBlock(site.offset(0, 0, 0), Blocks.STONE.defaultBlockState(), 3);
+            EntranceDecision blocked = policy.decide(
+                    new EntranceContext(level, level.getRandom(), "tower", false));
+            helper.assertTrue(blocked.outcome() == EntranceDecision.Outcome.SKIP,
+                    "an obstructed site must never silently generate: " + blocked.outcome());
+            // The explicit, never implicit fallback: an unregistered entrance
+            // follows the caller's configured behaviour, never a guess.
+            EntranceDecision unregisteredSkip = policy.decide(
+                    new EntranceContext(level, level.getRandom(), "missing", false));
+            EntranceDecision unregisteredFallback = policy.decide(
+                    new EntranceContext(level, level.getRandom(), "missing", true));
+            helper.assertTrue(unregisteredSkip.outcome() == EntranceDecision.Outcome.SKIP,
+                    "an unregistered entrance must skip under the skip fallback");
+            helper.assertTrue(
+                    unregisteredFallback.outcome() == EntranceDecision.Outcome.FALLBACK_GENERATE,
+                    "an unregistered entrance must follow the configured generate fallback");
+        } finally {
+            EntranceLocations.clear();
+        }
         helper.succeed();
     }
 }
