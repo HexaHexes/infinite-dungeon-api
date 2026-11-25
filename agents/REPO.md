@@ -6,8 +6,8 @@ and pulled in verbatim - **never hand-edit it.** Everything in this file is this
 repo's own and is edited freely; keep it aligned with the org rules rather than
 restating them.
 
-**Repo:** `HexaHexes/infinite-dungeon-api` · **Mod ID:** `infinite_dungeon_api` · **Branch:** `main`
-**Platform:** Minecraft 1.21.1 / NeoForge 21.1.259 / JDK 21 · **Jar:** `build/libs/infinite_dungeon_api-<version>.jar`
+**Repo:** `HexaHexes/infinite-dungeon-api` · **Mod ID:** `infinite_dungeon_api` · **Branch:** `neoforge-1.21.1` (the loader line; this is the default branch - no `main`)
+**Platform:** Minecraft 1.21.1 / NeoForge 21.1.259 / JDK 21 · **Jar:** `build/libs/infinite_dungeon_api-neoforge-1.21.1-<version>.jar`
 
 The public API and shared mechanics library of the infinite-dungeon module
 suite. It contains no gameplay: it defines the service registries (dimension
