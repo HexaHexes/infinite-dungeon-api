@@ -625,6 +625,21 @@ public final class ApiSmokeGameTests {
             helper.assertTrue(
                     unregisteredFallback.outcome() == EntranceDecision.Outcome.FALLBACK_GENERATE,
                     "an unregistered entrance must follow the configured generate fallback");
+            // The position-carrying query (EntranceContext.at): a provider
+            // answering for the candidate site sees it in the context.
+            BlockPos fresh = site.offset(20, 0, 0);
+            for (int dx = -3; dx <= 3; dx++) {
+                for (int dz = -3; dz <= 3; dz++) {
+                    level.setBlock(fresh.offset(dx, -1, dz), Blocks.STONE.defaultBlockState(), 3);
+                }
+            }
+            EntranceLocations.register("positional", context -> context.position().map(
+                    p -> new EntranceSite(p, structure)));
+            EntranceDecision positional = policy.decide(
+                    EntranceContext.at(level, fresh, "positional", false));
+            helper.assertTrue(positional.outcome() == EntranceDecision.Outcome.GENERATE
+                            && fresh.equals(positional.site().position()),
+                    "a provider must answer for the context's candidate position");
         } finally {
             EntranceLocations.clear();
         }
