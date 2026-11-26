@@ -1,6 +1,7 @@
 package org.bitwisemadness.infinitedungeonapi.entrance;
 
 import java.util.Objects;
+import net.minecraft.world.level.LevelAccessor;
 
 /**
  * The terrain-suitability contract (api#58): an entrance may generate only in
@@ -18,9 +19,12 @@ public final class EntranceSuitability {
     /**
      * Whether the site's footprint is suitable: solid ground under the full
      * footprint, a clear column up to the building's height, and no existing
-     * entrance block at the position. Pure over the level; worldgen-safe.
+     * entrance block at the position. Pure over the level; worldgen-safe. The
+     * level is a {@link LevelAccessor} so a worldgen feature (whose level is a
+     * {@code WorldGenLevel}) and a runtime caller (whose level is a
+     * {@code ServerLevel}) use the same suitability contract.
      */
-    public static boolean isSuitable(net.minecraft.server.level.ServerLevel level,
+    public static boolean isSuitable(LevelAccessor level,
                                      EntranceSite site, int width, int height, int depth,
                                      net.minecraft.world.level.block.Block entranceBlock) {
         Objects.requireNonNull(level, "level");
